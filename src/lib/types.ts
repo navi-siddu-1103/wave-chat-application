@@ -5,11 +5,17 @@ export interface User {
   online: boolean;
 }
 
+export interface Reaction {
+  emoji: string;
+  users: User[];
+}
+
 export interface Message {
   id: string;
   sender: User;
   content: string;
   timestamp: string;
+  reactions?: Reaction[];
 }
 
 export interface Chat {

@@ -1,28 +1,19 @@
-import type { Chat, Message } from '@/lib/types';
+import type { Chat, Message, Reaction } from '@/lib/types';
 import { ChatHeader } from './chat-header';
 import { ChatMessages } from './chat-messages';
 import { ChatInput } from './chat-input';
-import { users } from '@/lib/data';
 
 interface ChatPanelProps {
   chat: Chat | null;
-  onSendMessage: (newMessage: Message) => void;
+  onSendMessage: (content: string) => void;
+  onUpdateMessage: (chatId: string, messageId: string, newContent: string) => void;
+  onDeleteMessage: (chatId: string, messageId: string) => void;
+  onAddReaction: (chatId: string, messageId: string, reaction: Reaction) => void;
   onBack?: () => void;
 }
 
-export function ChatPanel({ chat, onSendMessage, onBack }: ChatPanelProps) {
-  const handleSendMessage = (content: string) => {
-    if (!chat) return;
-
-    const newMessage: Message = {
-      id: `msg-${Date.now()}`,
-      sender: users[0], // 'You'
-      content,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-    };
-    onSendMessage(newMessage);
-  };
-
+export function ChatPanel({ chat, onSendMessage, onUpdateMessage, onDeleteMessage, onAddReaction, onBack }: ChatPanelProps) {
+  
   if (!chat) {
     return (
       <div className="flex-1 flex items-center justify-center h-full">
@@ -36,8 +27,14 @@ export function ChatPanel({ chat, onSendMessage, onBack }: ChatPanelProps) {
   return (
     <div className="flex-1 flex flex-col h-full">
       <ChatHeader chat={chat} onBack={onBack} />
-      <ChatMessages messages={chat.messages} />
-      <ChatInput onSendMessage={handleSendMessage} />
+      <ChatMessages
+        chatId={chat.id}
+        messages={chat.messages}
+        onUpdateMessage={onUpdateMessage}
+        onDeleteMessage={onDeleteMessage}
+        onAddReaction={onAddReaction}
+      />
+      <ChatInput onSendMessage={onSendMessage} />
     </div>
   );
 }
