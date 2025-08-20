@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { Bot, Loader2, ArrowLeft, Camera } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { Bot, Loader2, ArrowLeft, Camera, Upload } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
@@ -13,7 +13,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import {
   Dialog,
@@ -40,7 +39,9 @@ interface ChatHeaderProps {
 export function ChatHeader({ chat, onUpdateChatAvatar, onBack }: ChatHeaderProps) {
   const [summary, setSummary] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [newAvatarUrl, setNewAvatarUrl] = useState('');
+  const [newAvatarFile, setNewAvatarFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
   const handleSummarize = async () => {
@@ -63,11 +64,37 @@ export function ChatHeader({ chat, onUpdateChatAvatar, onBack }: ChatHeaderProps
       setIsLoading(false);
     }
   };
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setNewAvatarFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPreviewUrl(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
   
   const handleAvatarChange = () => {
-    if (newAvatarUrl.trim()) {
-      onUpdateChatAvatar(chat.id, newAvatarUrl.trim());
-      setNewAvatarUrl('');
+    if (previewUrl) {
+      onUpdateChatAvatar(chat.id, previewUrl);
+      resetAvatarDialog();
+    }
+  };
+
+  const resetAvatarDialog = () => {
+    setNewAvatarFile(null);
+    setPreviewUrl(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const handleDialogClose = (open: boolean) => {
+    if (!open) {
+      resetAvatarDialog();
     }
   };
 
@@ -80,7 +107,7 @@ export function ChatHeader({ chat, onUpdateChatAvatar, onBack }: ChatHeaderProps
             <span className="sr-only">Back</span>
           </Button>
         )}
-        <Dialog>
+        <Dialog onOpenChange={handleDialogClose}>
           <DialogTrigger asChild>
             <div className="relative group cursor-pointer">
               <Avatar className="w-10 h-10">
@@ -96,21 +123,29 @@ export function ChatHeader({ chat, onUpdateChatAvatar, onBack }: ChatHeaderProps
             <DialogHeader>
               <DialogTitle>Change Photo</DialogTitle>
               <DialogDescription>
-                Enter a new image URL for {chat.name}.
+                Upload a new photo for {chat.name}.
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="avatar-url" className="text-right">
-                  Image URL
-                </Label>
+              <div className="flex flex-col items-center gap-4">
+                <Avatar className="w-24 h-24">
+                  <AvatarImage src={previewUrl || chat.avatar} alt="Avatar preview" />
+                  <AvatarFallback>
+                    <Upload className="w-8 h-8 text-muted-foreground" />
+                  </AvatarFallback>
+                </Avatar>
                 <Input
-                  id="avatar-url"
-                  value={newAvatarUrl}
-                  onChange={(e) => setNewAvatarUrl(e.target.value)}
-                  className="col-span-3"
-                  placeholder="https://example.com/image.png"
+                  id="avatar-file"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileChange}
+                  className="hidden"
+                  ref={fileInputRef}
                 />
+                <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
+                  <Upload className="w-4 h-4 mr-2" />
+                  {newAvatarFile ? newAvatarFile.name : 'Choose Image'}
+                </Button>
               </div>
             </div>
             <DialogFooter>
@@ -120,7 +155,7 @@ export function ChatHeader({ chat, onUpdateChatAvatar, onBack }: ChatHeaderProps
                 </Button>
               </DialogClose>
               <DialogClose asChild>
-                <Button type="submit" onClick={handleAvatarChange}>Save changes</Button>
+                <Button type="submit" onClick={handleAvatarChange} disabled={!newAvatarFile}>Save changes</Button>
               </DialogClose>
             </DialogFooter>
           </DialogContent>
