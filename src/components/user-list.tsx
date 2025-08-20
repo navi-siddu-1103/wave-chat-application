@@ -1,17 +1,20 @@
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Users, Hash } from 'lucide-react';
+import { Users, Hash, UserPlus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Chat } from '@/lib/types';
+import { AddContactDialog } from './add-contact-dialog';
+import type { User } from '@/lib/types';
 
 interface UserListProps {
   chats: Chat[];
   selectedChatId?: string;
   onSelectChat: (chatId: string) => void;
+  onAddContact: (user: User) => void;
 }
 
-export function UserList({ chats, selectedChatId, onSelectChat }: UserListProps) {
+export function UserList({ chats, selectedChatId, onSelectChat, onAddContact }: UserListProps) {
   const directMessages = chats.filter((chat) => chat.type === 'direct');
   const groupChats = chats.filter((chat) => chat.type === 'group');
 
@@ -50,10 +53,18 @@ export function UserList({ chats, selectedChatId, onSelectChat }: UserListProps)
           ))}
         </div>
         <div className="p-2">
-          <h2 className="text-xs font-semibold text-muted-foreground p-2 flex items-center">
-            <Users className="w-4 h-4 mr-2" />
-            Direct Messages
-          </h2>
+          <div className="flex items-center justify-between">
+            <h2 className="text-xs font-semibold text-muted-foreground p-2 flex items-center">
+              <Users className="w-4 h-4 mr-2" />
+              Direct Messages
+            </h2>
+            <AddContactDialog onAddContact={onAddContact}>
+              <Button variant="ghost" size="icon" className="h-7 w-7">
+                <UserPlus className="w-4 h-4" />
+                <span className="sr-only">Add Contact</span>
+              </Button>
+            </AddContactDialog>
+          </div>
           {directMessages.map((chat) => (
             <Button
               key={chat.id}

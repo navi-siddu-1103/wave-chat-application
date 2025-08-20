@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { chats as initialChats } from '@/lib/data';
-import type { Chat, Message, Reaction } from '@/lib/types';
+import type { Chat, Message, Reaction, User } from '@/lib/types';
 import { UserList } from './user-list';
 import { ChatPanel } from './chat-panel';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -174,6 +174,20 @@ export function ChatLayout() {
     }
   };
 
+  const handleAddContact = (newUser: User) => {
+    const newChat: Chat = {
+      id: `chat-${Date.now()}`,
+      type: 'direct',
+      name: newUser.name,
+      participants: [users[0], newUser],
+      avatar: newUser.avatar,
+      messages: [],
+    };
+    setChats(prevChats => [...prevChats, newChat]);
+    setSelectedChat(newChat);
+  };
+
+
   const handleBack = () => {
     setSelectedChat(null);
   };
@@ -185,7 +199,12 @@ export function ChatLayout() {
         "w-full lg:w-80",
         isMobile && selectedChat ? "hidden" : "flex flex-col"
       )}>
-        <UserList chats={chats} onSelectChat={handleSelectChat} selectedChatId={selectedChat?.id} />
+        <UserList 
+          chats={chats} 
+          onSelectChat={handleSelectChat} 
+          selectedChatId={selectedChat?.id}
+          onAddContact={handleAddContact}
+        />
       </div>
       <div className={cn(
         "flex-1",
