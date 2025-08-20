@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { Bot, Loader2, ArrowLeft, Camera, Upload } from 'lucide-react';
+import { Bot, Loader2, ArrowLeft, Camera, Upload, Pin } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
@@ -24,11 +24,17 @@ import {
   DialogTrigger,
   DialogClose
 } from '@/components/ui/dialog';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import type { Chat } from '@/lib/types';
 import { getChatSummary } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
+import { ScrollArea } from './ui/scroll-area';
 
 interface ChatHeaderProps {
   chat: Chat;
@@ -43,6 +49,8 @@ export function ChatHeader({ chat, onUpdateChatAvatar, onBack }: ChatHeaderProps
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+
+  const pinnedMessages = chat.messages.filter(msg => chat.pinnedMessageIds?.includes(msg.id));
 
   const handleSummarize = async () => {
     setIsLoading(true);
@@ -169,34 +177,67 @@ export function ChatHeader({ chat, onUpdateChatAvatar, onBack }: ChatHeaderProps
         </div>
       </div>
       
-      <AlertDialog>
-        <AlertDialogTrigger asChild>
-          <Button variant="outline" size="sm" onClick={handleSummarize}>
-            <Bot className="w-4 h-4 mr-2" />
-            Summarize Chat
-          </Button>
-        </AlertDialogTrigger>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Chat Summary</AlertDialogTitle>
-            <AlertDialogDescription>
-              An AI-generated summary of the conversation so far.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <div className="max-h-80 overflow-y-auto p-2">
-            {isLoading ? (
-              <div className="flex items-center justify-center">
-                <Loader2 className="w-6 h-6 animate-spin text-primary" />
+      <div className="flex items-center gap-2">
+        {pinnedMessages.length > 0 && (
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm">
+                <Pin className="w-4 h-4 mr-2" />
+                {pinnedMessages.length}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-80">
+              <div className="grid gap-4">
+                <div className="space-y-2">
+                  <h4 className="font-medium leading-none">Pinned Messages</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Important messages in this chat.
+                  </p>
+                </div>
+                <ScrollArea className="h-40">
+                  <div className="grid gap-2 pr-4">
+                    {pinnedMessages.map((msg) => (
+                      <div key={msg.id} className="text-sm p-2 bg-secondary rounded-md">
+                        <p className="font-semibold">{msg.sender.name}</p>
+                        <p className="truncate">{msg.content}</p>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
               </div>
-            ) : (
-              <p className="text-sm">{summary}</p>
-            )}
-          </div>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Close</AlertDialogCancel>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+            </PopoverContent>
+          </Popover>
+        )}
+
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button variant="outline" size="sm" onClick={handleSummarize}>
+              <Bot className="w-4 h-4 mr-2" />
+              Summarize Chat
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Chat Summary</AlertDialogTitle>
+              <AlertDialogDescription>
+                An AI-generated summary of the conversation so far.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <div className="max-h-80 overflow-y-auto p-2">
+              {isLoading ? (
+                <div className="flex items-center justify-center">
+                  <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                </div>
+              ) : (
+                <p className="text-sm">{summary}</p>
+              )}
+            </div>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Close</AlertDialogCancel>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
     </div>
   );
 }

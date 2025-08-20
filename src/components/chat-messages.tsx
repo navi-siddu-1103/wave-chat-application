@@ -4,7 +4,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import type { Message, Reaction, User } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { users } from '@/lib/data';
-import { MoreHorizontal, Smile, Trash2, Pencil, Check, X } from 'lucide-react';
+import { MoreHorizontal, Smile, Trash2, Pencil, Check, X, Pin } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -29,14 +29,16 @@ import {
 interface ChatMessagesProps {
   chatId: string;
   messages: Message[];
+  pinnedMessageIds?: string[];
   onUpdateMessage: (chatId: string, messageId: string, newContent: string) => void;
   onDeleteMessage: (chatId: string, messageId: string) => void;
   onAddReaction: (chatId: string, messageId: string, reaction: Reaction) => void;
+  onTogglePinMessage: (chatId: string, messageId: string) => void;
 }
 
 const EMOJI_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🙏'];
 
-export function ChatMessages({ chatId, messages, onUpdateMessage, onDeleteMessage, onAddReaction }: ChatMessagesProps) {
+export function ChatMessages({ chatId, messages, pinnedMessageIds, onUpdateMessage, onDeleteMessage, onAddReaction, onTogglePinMessage }: ChatMessagesProps) {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
@@ -74,6 +76,7 @@ export function ChatMessages({ chatId, messages, onUpdateMessage, onDeleteMessag
       <div className="p-4 space-y-4">
         {messages.map((message) => {
           const isOwnMessage = message.sender.id === currentUser.id;
+          const isPinned = pinnedMessageIds?.includes(message.id);
           return (
             <div
               key={message.id}
@@ -88,7 +91,8 @@ export function ChatMessages({ chatId, messages, onUpdateMessage, onDeleteMessag
               <div
                 className={cn(
                   'max-w-xs md:max-w-md lg:max-w-lg p-3 rounded-lg relative',
-                  isOwnMessage ? 'bg-primary text-primary-foreground' : 'bg-card'
+                  isOwnMessage ? 'bg-primary text-primary-foreground' : 'bg-card',
+                  isPinned ? (isOwnMessage ? 'bg-primary/90' : 'bg-secondary') : ''
                 )}
               >
                 {!isOwnMessage && (
@@ -104,9 +108,13 @@ export function ChatMessages({ chatId, messages, onUpdateMessage, onDeleteMessag
                   <p className="text-sm break-words">{message.content}</p>
                 )}
 
-                <p className={cn('text-xs mt-1', isOwnMessage ? 'text-primary-foreground/70' : 'text-muted-foreground')}>
-                  {message.timestamp}
-                </p>
+                <div className="flex items-center justify-between mt-1">
+                  <p className={cn('text-xs', isOwnMessage ? 'text-primary-foreground/70' : 'text-muted-foreground')}>
+                    {message.timestamp}
+                  </p>
+                   {isPinned && <Pin className="w-3 h-3 text-muted-foreground" />}
+                </div>
+
 
                 {message.reactions && message.reactions.length > 0 && (
                   <div className="flex flex-wrap gap-1 mt-2">
@@ -145,9 +153,11 @@ export function ChatMessages({ chatId, messages, onUpdateMessage, onDeleteMessag
                 <MessageActions
                   message={message}
                   isOwnMessage={isOwnMessage}
+                  isPinned={isPinned}
                   onEdit={() => handleEditClick(message)}
                   onDelete={() => onDeleteMessage(chatId, message.id)}
                   onReact={(emoji) => onAddReaction(chatId, message.id, { emoji, users: [currentUser] })}
+                  onTogglePin={() => onTogglePinMessage(chatId, message.id)}
                 />
               </div>
               {isOwnMessage && (
@@ -168,12 +178,14 @@ export function ChatMessages({ chatId, messages, onUpdateMessage, onDeleteMessag
 interface MessageActionsProps {
   message: Message;
   isOwnMessage: boolean;
+  isPinned?: boolean;
   onEdit: () => void;
   onDelete: () => void;
   onReact: (emoji: string) => void;
+  onTogglePin: () => void;
 }
 
-function MessageActions({ isOwnMessage, onEdit, onDelete, onReact }: MessageActionsProps) {
+function MessageActions({ isOwnMessage, isPinned, onEdit, onDelete, onReact, onTogglePin }: MessageActionsProps) {
   return (
     <div className="flex items-center">
       <Popover>
@@ -192,19 +204,23 @@ function MessageActions({ isOwnMessage, onEdit, onDelete, onReact }: MessageActi
           </div>
         </PopoverContent>
       </Popover>
-      {isOwnMessage && (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="w-7 h-7">
-              <MoreHorizontal className="w-4 h-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent>
-            <DropdownMenuItem onClick={onEdit}><Pencil className="w-4 h-4 mr-2" />Edit</DropdownMenuItem>
-            <DropdownMenuItem onClick={onDelete} className="text-destructive"><Trash2 className="w-4 h-4 mr-2" />Delete</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      )}
+      
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="icon" className="w-7 h-7">
+            <MoreHorizontal className="w-4 h-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent>
+          <DropdownMenuItem onClick={onTogglePin}><Pin className="w-4 h-4 mr-2" />{isPinned ? 'Unpin' : 'Pin'}</DropdownMenuItem>
+          {isOwnMessage && (
+            <>
+              <DropdownMenuItem onClick={onEdit}><Pencil className="w-4 h-4 mr-2" />Edit</DropdownMenuItem>
+              <DropdownMenuItem onClick={onDelete} className="text-destructive"><Trash2 className="w-4 h-4 mr-2" />Delete</DropdownMenuItem>
+            </>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   );
 }

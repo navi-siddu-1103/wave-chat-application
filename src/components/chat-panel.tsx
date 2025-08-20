@@ -10,10 +10,20 @@ interface ChatPanelProps {
   onDeleteMessage: (chatId: string, messageId: string) => void;
   onAddReaction: (chatId: string, messageId: string, reaction: Reaction) => void;
   onUpdateChatAvatar: (chatId: string, newAvatar: string) => void;
+  onTogglePinMessage: (chatId: string, messageId: string) => void;
   onBack?: () => void;
 }
 
-export function ChatPanel({ chat, onSendMessage, onUpdateMessage, onDeleteMessage, onAddReaction, onUpdateChatAvatar, onBack }: ChatPanelProps) {
+export function ChatPanel({
+  chat,
+  onSendMessage,
+  onUpdateMessage,
+  onDeleteMessage,
+  onAddReaction,
+  onUpdateChatAvatar,
+  onTogglePinMessage,
+  onBack
+}: ChatPanelProps) {
   
   if (!chat) {
     return (
@@ -31,9 +41,11 @@ export function ChatPanel({ chat, onSendMessage, onUpdateMessage, onDeleteMessag
       <ChatMessages
         chatId={chat.id}
         messages={chat.messages}
+        pinnedMessageIds={chat.pinnedMessageIds}
         onUpdateMessage={onUpdateMessage}
         onDeleteMessage={onDeleteMessage}
         onAddReaction={onAddReaction}
+        onTogglePinMessage={onTogglePinMessage}
       />
       <ChatInput onSendMessage={onSendMessage} />
     </div>

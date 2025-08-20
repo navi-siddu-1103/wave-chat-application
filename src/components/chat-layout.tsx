@@ -82,7 +82,9 @@ export function ChatLayout() {
       if (chat.id === chatId) {
         return {
           ...chat,
-          messages: chat.messages.filter(msg => msg.id !== messageId)
+          messages: chat.messages.filter(msg => msg.id !== messageId),
+          // Also remove from pinned messages if it was pinned
+          pinnedMessageIds: chat.pinnedMessageIds?.filter(id => id !== messageId)
         };
       }
       return chat;
@@ -90,7 +92,8 @@ export function ChatLayout() {
     if (selectedChat?.id === chatId) {
       setSelectedChat(prev => prev ? ({
         ...prev,
-        messages: prev.messages.filter(msg => msg.id !== messageId)
+        messages: prev.messages.filter(msg => msg.id !== messageId),
+        pinnedMessageIds: prev.pinnedMessageIds?.filter(id => id !== messageId)
       }) : null);
     }
   };
@@ -199,6 +202,30 @@ export function ChatLayout() {
     setSelectedChat(newGroupChat);
   };
 
+  const handleTogglePinMessage = (chatId: string, messageId: string) => {
+    setChats(prevChats => prevChats.map(chat => {
+      if (chat.id === chatId) {
+        const pinnedIds = chat.pinnedMessageIds || [];
+        const newPinnedIds = pinnedIds.includes(messageId)
+          ? pinnedIds.filter(id => id !== messageId)
+          : [...pinnedIds, messageId];
+        return { ...chat, pinnedMessageIds: newPinnedIds };
+      }
+      return chat;
+    }));
+
+    if (selectedChat?.id === chatId) {
+      setSelectedChat(prev => {
+        if (!prev) return null;
+        const pinnedIds = prev.pinnedMessageIds || [];
+        const newPinnedIds = pinnedIds.includes(messageId)
+          ? pinnedIds.filter(id => id !== messageId)
+          : [...pinnedIds, messageId];
+        return { ...prev, pinnedMessageIds: newPinnedIds };
+      });
+    }
+  };
+
   const handleBack = () => {
     setSelectedChat(null);
   };
@@ -229,6 +256,7 @@ export function ChatLayout() {
           onDeleteMessage={handleDeleteMessage}
           onAddReaction={handleAddReaction}
           onUpdateChatAvatar={handleUpdateChatAvatar}
+          onTogglePinMessage={handleTogglePinMessage}
           onBack={isMobile ? handleBack : undefined} 
         />
       </div>

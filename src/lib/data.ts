@@ -15,6 +15,7 @@ export const chats: Chat[] = [
     name: '#general',
     avatar: 'https://placehold.co/40x40.png',
     unread: 2,
+    pinnedMessageIds: ['msg4'],
     messages: [
       { id: 'msg1', sender: users[1], content: 'Hey everyone! How is it going?', timestamp: '10:00 AM', reactions: [{ emoji: '👋', users: [users[2], users[3]] }] },
       { id: 'msg2', sender: users[2], content: 'Hi Alice! I am doing great. Just finished the quarterly report.', timestamp: '10:01 AM', reactions: [{ emoji: '👍', users: [users[1]] }] },

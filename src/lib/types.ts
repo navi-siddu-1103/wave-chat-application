@@ -26,4 +26,5 @@ export interface Chat {
   messages: Message[];
   avatar?: string;
   unread?: number;
+  pinnedMessageIds?: string[];
 }
