@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Bot, Loader2, ArrowLeft } from 'lucide-react';
+import { Bot, Loader2, ArrowLeft, Camera } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
@@ -15,18 +15,32 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogClose
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import type { Chat } from '@/lib/types';
 import { getChatSummary } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 
 interface ChatHeaderProps {
   chat: Chat;
+  onUpdateChatAvatar: (chatId: string, newAvatar: string) => void;
   onBack?: () => void;
 }
 
-export function ChatHeader({ chat, onBack }: ChatHeaderProps) {
+export function ChatHeader({ chat, onUpdateChatAvatar, onBack }: ChatHeaderProps) {
   const [summary, setSummary] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [newAvatarUrl, setNewAvatarUrl] = useState('');
   const { toast } = useToast();
 
   const handleSummarize = async () => {
@@ -49,6 +63,13 @@ export function ChatHeader({ chat, onBack }: ChatHeaderProps) {
       setIsLoading(false);
     }
   };
+  
+  const handleAvatarChange = () => {
+    if (newAvatarUrl.trim()) {
+      onUpdateChatAvatar(chat.id, newAvatarUrl.trim());
+      setNewAvatarUrl('');
+    }
+  };
 
   return (
     <div className="flex items-center justify-between p-4 border-b">
@@ -59,10 +80,52 @@ export function ChatHeader({ chat, onBack }: ChatHeaderProps) {
             <span className="sr-only">Back</span>
           </Button>
         )}
-        <Avatar>
-          <AvatarImage src={chat.avatar} alt={chat.name} data-ai-hint={chat.type === 'group' ? 'group symbol' : 'person'} />
-          <AvatarFallback>{chat.name.charAt(chat.name.startsWith('#') ? 1 : 0).toUpperCase()}</AvatarFallback>
-        </Avatar>
+        <Dialog>
+          <DialogTrigger asChild>
+            <div className="relative group cursor-pointer">
+              <Avatar className="w-10 h-10">
+                <AvatarImage src={chat.avatar} alt={chat.name} data-ai-hint={chat.type === 'group' ? 'group symbol' : 'person'} />
+                <AvatarFallback>{chat.name.charAt(chat.name.startsWith('#') ? 1 : 0).toUpperCase()}</AvatarFallback>
+              </Avatar>
+              <div className="absolute inset-0 bg-black/40 flex items-center justify-center rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+                <Camera className="w-5 h-5 text-white" />
+              </div>
+            </div>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Change Photo</DialogTitle>
+              <DialogDescription>
+                Enter a new image URL for {chat.name}.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="avatar-url" className="text-right">
+                  Image URL
+                </Label>
+                <Input
+                  id="avatar-url"
+                  value={newAvatarUrl}
+                  onChange={(e) => setNewAvatarUrl(e.target.value)}
+                  className="col-span-3"
+                  placeholder="https://example.com/image.png"
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <DialogClose asChild>
+                <Button type="button" variant="secondary">
+                  Cancel
+                </Button>
+              </DialogClose>
+              <DialogClose asChild>
+                <Button type="submit" onClick={handleAvatarChange}>Save changes</Button>
+              </DialogClose>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+        
         <div>
           <h2 className="text-lg font-semibold">{chat.name}</h2>
           <p className="text-sm text-muted-foreground">

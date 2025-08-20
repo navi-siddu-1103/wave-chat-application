@@ -9,10 +9,11 @@ interface ChatPanelProps {
   onUpdateMessage: (chatId: string, messageId: string, newContent: string) => void;
   onDeleteMessage: (chatId: string, messageId: string) => void;
   onAddReaction: (chatId: string, messageId: string, reaction: Reaction) => void;
+  onUpdateChatAvatar: (chatId: string, newAvatar: string) => void;
   onBack?: () => void;
 }
 
-export function ChatPanel({ chat, onSendMessage, onUpdateMessage, onDeleteMessage, onAddReaction, onBack }: ChatPanelProps) {
+export function ChatPanel({ chat, onSendMessage, onUpdateMessage, onDeleteMessage, onAddReaction, onUpdateChatAvatar, onBack }: ChatPanelProps) {
   
   if (!chat) {
     return (
@@ -26,7 +27,7 @@ export function ChatPanel({ chat, onSendMessage, onUpdateMessage, onDeleteMessag
 
   return (
     <div className="flex-1 flex flex-col h-full">
-      <ChatHeader chat={chat} onBack={onBack} />
+      <ChatHeader chat={chat} onUpdateChatAvatar={onUpdateChatAvatar} onBack={onBack} />
       <ChatMessages
         chatId={chat.id}
         messages={chat.messages}

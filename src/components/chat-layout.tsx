@@ -161,6 +161,19 @@ export function ChatLayout() {
     }
   };
 
+  const handleUpdateChatAvatar = (chatId: string, newAvatar: string) => {
+    const updatedChats = chats.map(chat => {
+      if (chat.id === chatId) {
+        return { ...chat, avatar: newAvatar };
+      }
+      return chat;
+    });
+    setChats(updatedChats);
+    if (selectedChat?.id === chatId) {
+      setSelectedChat(prev => prev ? { ...prev, avatar: newAvatar } : null);
+    }
+  };
+
   const handleBack = () => {
     setSelectedChat(null);
   };
@@ -184,6 +197,7 @@ export function ChatLayout() {
           onUpdateMessage={handleUpdateMessage}
           onDeleteMessage={handleDeleteMessage}
           onAddReaction={handleAddReaction}
+          onUpdateChatAvatar={handleUpdateChatAvatar}
           onBack={isMobile ? handleBack : undefined} 
         />
       </div>
