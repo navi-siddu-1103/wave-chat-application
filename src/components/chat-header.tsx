@@ -1,11 +1,12 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { Bot, Loader2, ArrowLeft, Camera, Upload, Pin } from 'lucide-react';
+import { Bot, Loader2, ArrowLeft, Camera, Upload, Pin, MoreVertical, ShieldOff } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
   AlertDialog,
+  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -25,6 +26,12 @@ import {
   DialogClose
 } from '@/components/ui/dialog';
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
   Popover,
   PopoverContent,
   PopoverTrigger,
@@ -39,10 +46,11 @@ import { users } from '@/lib/data';
 interface ChatHeaderProps {
   chat: Chat;
   onUpdateChatAvatar: (chatId: string, newAvatar: string) => void;
+  onBlockUser?: (userId: string) => void;
   onBack?: () => void;
 }
 
-export function ChatHeader({ chat, onUpdateChatAvatar, onBack }: ChatHeaderProps) {
+export function ChatHeader({ chat, onUpdateChatAvatar, onBlockUser, onBack }: ChatHeaderProps) {
   const [summary, setSummary] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [newAvatarFile, setNewAvatarFile] = useState<File | null>(null);
@@ -105,6 +113,12 @@ export function ChatHeader({ chat, onUpdateChatAvatar, onBack }: ChatHeaderProps
   const handleDialogClose = (open: boolean) => {
     if (!open) {
       resetAvatarDialog();
+    }
+  };
+
+  const handleBlock = () => {
+    if (participant && onBlockUser) {
+      onBlockUser(participant.id);
     }
   };
 
@@ -247,6 +261,39 @@ export function ChatHeader({ chat, onUpdateChatAvatar, onBack }: ChatHeaderProps
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {chat.type === 'direct' && onBlockUser && (
+          <AlertDialog>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon">
+                  <MoreVertical className="w-5 h-5" />
+                  <span className="sr-only">More options</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <AlertDialogTrigger asChild>
+                  <DropdownMenuItem className="text-destructive">
+                    <ShieldOff className="w-4 h-4 mr-2" />
+                    Block User
+                  </DropdownMenuItem>
+                </AlertDialogTrigger>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Blocking this user will prevent them from sending you messages. You can unblock them later from settings.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleBlock} className="bg-destructive hover:bg-destructive/90">Block</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
       </div>
     </div>
   );

@@ -8,11 +8,14 @@ import { ChatPanel } from './chat-panel';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import { users } from '@/lib/data';
+import { useToast } from '@/hooks/use-toast';
 
 export function ChatLayout() {
   const [chats, setChats] = useState<Chat[]>(initialChats);
   const [selectedChat, setSelectedChat] = useState<Chat | null>(null);
+  const [blockedUserIds, setBlockedUserIds] = useState<string[]>([]);
   const isMobile = useIsMobile();
+  const { toast } = useToast();
 
   useEffect(() => {
     if (!isMobile) {
@@ -226,9 +229,22 @@ export function ChatLayout() {
     }
   };
 
+  const handleBlockUser = (userId: string) => {
+    setBlockedUserIds(prev => [...prev, userId]);
+    const user = users.find(u => u.id === userId);
+    toast({
+      title: 'User Blocked',
+      description: `You have blocked ${user?.name || 'the user'}.`,
+    });
+  };
+
   const handleBack = () => {
     setSelectedChat(null);
   };
+
+  const currentUser = users[0];
+  const participant = selectedChat?.type === 'direct' ? selectedChat.participants?.find(p => p.id !== currentUser.id) : undefined;
+  const isBlocked = participant ? blockedUserIds.includes(participant.id) : false;
 
   return (
     <div className="z-10 border rounded-lg w-full h-full text-sm flex overflow-hidden shadow-lg">
@@ -257,6 +273,8 @@ export function ChatLayout() {
           onAddReaction={handleAddReaction}
           onUpdateChatAvatar={handleUpdateChatAvatar}
           onTogglePinMessage={handleTogglePinMessage}
+          onBlockUser={handleBlockUser}
+          isBlocked={isBlocked}
           onBack={isMobile ? handleBack : undefined} 
         />
       </div>
