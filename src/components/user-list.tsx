@@ -1,10 +1,11 @@
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Users, Hash, UserPlus } from 'lucide-react';
+import { Users, Hash, UserPlus, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Chat } from '@/lib/types';
 import { AddContactDialog } from './add-contact-dialog';
+import { AddGroupDialog } from './add-group-dialog';
 import type { User } from '@/lib/types';
 
 interface UserListProps {
@@ -12,9 +13,10 @@ interface UserListProps {
   selectedChatId?: string;
   onSelectChat: (chatId: string) => void;
   onAddContact: (user: User) => void;
+  onAddGroup: (group: { name: string; avatar?: string }) => void;
 }
 
-export function UserList({ chats, selectedChatId, onSelectChat, onAddContact }: UserListProps) {
+export function UserList({ chats, selectedChatId, onSelectChat, onAddContact, onAddGroup }: UserListProps) {
   const directMessages = chats.filter((chat) => chat.type === 'direct');
   const groupChats = chats.filter((chat) => chat.type === 'group');
 
@@ -25,10 +27,18 @@ export function UserList({ chats, selectedChatId, onSelectChat, onAddContact }: 
       </div>
       <ScrollArea className="flex-1">
         <div className="p-2">
-          <h2 className="text-xs font-semibold text-muted-foreground p-2 flex items-center">
-            <Hash className="w-4 h-4 mr-2" />
-            Channels
-          </h2>
+          <div className="flex items-center justify-between">
+            <h2 className="text-xs font-semibold text-muted-foreground p-2 flex items-center">
+              <Hash className="w-4 h-4 mr-2" />
+              Channels
+            </h2>
+            <AddGroupDialog onAddGroup={onAddGroup}>
+              <Button variant="ghost" size="icon" className="h-7 w-7">
+                <Plus className="w-4 h-4" />
+                <span className="sr-only">Create Group</span>
+              </Button>
+            </AddGroupDialog>
+          </div>
           {groupChats.map((chat) => (
             <Button
               key={chat.id}

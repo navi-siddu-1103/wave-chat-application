@@ -187,6 +187,17 @@ export function ChatLayout() {
     setSelectedChat(newChat);
   };
 
+  const handleAddGroup = (group: { name: string; avatar?: string }) => {
+    const newGroupChat: Chat = {
+      id: `chat-${Date.now()}`,
+      type: 'group',
+      name: group.name,
+      avatar: group.avatar,
+      messages: [],
+    };
+    setChats(prevChats => [...prevChats, newGroupChat]);
+    setSelectedChat(newGroupChat);
+  };
 
   const handleBack = () => {
     setSelectedChat(null);
@@ -204,6 +215,7 @@ export function ChatLayout() {
           onSelectChat={handleSelectChat} 
           selectedChatId={selectedChat?.id}
           onAddContact={handleAddContact}
+          onAddGroup={handleAddGroup}
         />
       </div>
       <div className={cn(
