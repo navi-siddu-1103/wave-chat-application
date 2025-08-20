@@ -30,11 +30,11 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import type { Chat } from '@/lib/types';
 import { getChatSummary } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from './ui/scroll-area';
+import { users } from '@/lib/data';
 
 interface ChatHeaderProps {
   chat: Chat;
@@ -51,6 +51,8 @@ export function ChatHeader({ chat, onUpdateChatAvatar, onBack }: ChatHeaderProps
   const { toast } = useToast();
 
   const pinnedMessages = chat.messages.filter(msg => chat.pinnedMessageIds?.includes(msg.id));
+  const currentUser = users[0];
+  const participant = chat.type === 'direct' ? chat.participants?.find(p => p.id !== currentUser.id) : undefined;
 
   const handleSummarize = async () => {
     setIsLoading(true);
@@ -122,6 +124,9 @@ export function ChatHeader({ chat, onUpdateChatAvatar, onBack }: ChatHeaderProps
                 <AvatarImage src={chat.avatar} alt={chat.name} data-ai-hint={chat.type === 'group' ? 'group symbol' : 'person'} />
                 <AvatarFallback>{chat.name.charAt(chat.name.startsWith('#') ? 1 : 0).toUpperCase()}</AvatarFallback>
               </Avatar>
+              {participant?.online && chat.type === 'direct' && (
+                <span className="absolute bottom-0 right-0 block h-2.5 w-2.5 rounded-full bg-green-500 ring-2 ring-background" />
+              )}
               <div className="absolute inset-0 bg-black/40 flex items-center justify-center rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
                 <Camera className="w-5 h-5 text-white" />
               </div>
@@ -172,7 +177,12 @@ export function ChatHeader({ chat, onUpdateChatAvatar, onBack }: ChatHeaderProps
         <div>
           <h2 className="text-lg font-semibold">{chat.name}</h2>
           <p className="text-sm text-muted-foreground">
-            {chat.type === 'group' ? `${chat.messages.length} messages` : 'Direct Message'}
+            {chat.type === 'group' 
+              ? `${chat.messages.length} messages` 
+              : participant?.online 
+                ? 'Online' 
+                : 'Offline'
+            }
           </p>
         </div>
       </div>

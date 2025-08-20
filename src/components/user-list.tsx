@@ -3,10 +3,10 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Users, Hash, UserPlus, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { Chat } from '@/lib/types';
+import type { Chat, User } from '@/lib/types';
 import { AddContactDialog } from './add-contact-dialog';
 import { AddGroupDialog } from './add-group-dialog';
-import type { User } from '@/lib/types';
+import { users } from '@/lib/data';
 
 interface UserListProps {
   chats: Chat[];
@@ -19,6 +19,14 @@ interface UserListProps {
 export function UserList({ chats, selectedChatId, onSelectChat, onAddContact, onAddGroup }: UserListProps) {
   const directMessages = chats.filter((chat) => chat.type === 'direct');
   const groupChats = chats.filter((chat) => chat.type === 'group');
+  const currentUser = users[0];
+
+  const getParticipant = (chat: Chat) => {
+    if (chat.type === 'direct' && chat.participants) {
+      return chat.participants.find(p => p.id !== currentUser.id);
+    }
+    return undefined;
+  };
 
   return (
     <aside className="h-full flex flex-col">
@@ -75,28 +83,36 @@ export function UserList({ chats, selectedChatId, onSelectChat, onAddContact, on
               </Button>
             </AddContactDialog>
           </div>
-          {directMessages.map((chat) => (
-            <Button
-              key={chat.id}
-              variant="ghost"
-              className={cn(
-                'w-full justify-start items-center p-2 h-12',
-                selectedChatId === chat.id && 'bg-accent text-accent-foreground'
-              )}
-              onClick={() => onSelectChat(chat.id)}
-            >
-              <Avatar className="w-8 h-8 mr-2">
-                <AvatarImage src={chat.avatar} alt={chat.name} data-ai-hint="person" />
-                <AvatarFallback>{chat.name.charAt(0).toUpperCase()}</AvatarFallback>
-              </Avatar>
-              <span className="truncate">{chat.name}</span>
-               {chat.unread && chat.unread > 0 ? (
-                <span className="ml-auto bg-primary text-primary-foreground text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                  {chat.unread}
-                </span>
-              ) : null}
-            </Button>
-          ))}
+          {directMessages.map((chat) => {
+            const participant = getParticipant(chat);
+            return (
+              <Button
+                key={chat.id}
+                variant="ghost"
+                className={cn(
+                  'w-full justify-start items-center p-2 h-12',
+                  selectedChatId === chat.id && 'bg-accent text-accent-foreground'
+                )}
+                onClick={() => onSelectChat(chat.id)}
+              >
+                <div className="relative">
+                  <Avatar className="w-8 h-8 mr-2">
+                    <AvatarImage src={chat.avatar} alt={chat.name} data-ai-hint="person" />
+                    <AvatarFallback>{chat.name.charAt(0).toUpperCase()}</AvatarFallback>
+                  </Avatar>
+                  {participant?.online && (
+                    <span className="absolute bottom-0 right-2 block h-2 w-2 rounded-full bg-green-500 ring-2 ring-background" />
+                  )}
+                </div>
+                <span className="truncate">{chat.name}</span>
+                 {chat.unread && chat.unread > 0 ? (
+                  <span className="ml-auto bg-primary text-primary-foreground text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                    {chat.unread}
+                  </span>
+                ) : null}
+              </Button>
+            );
+          })}
         </div>
       </ScrollArea>
     </aside>
