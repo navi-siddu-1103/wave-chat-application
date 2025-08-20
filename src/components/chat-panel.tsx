@@ -1,8 +1,12 @@
+import { useState, useEffect } from 'react';
 import type { Chat, Message, Reaction } from '@/lib/types';
 import { ChatHeader } from './chat-header';
 import { ChatMessages } from './chat-messages';
 import { ChatInput } from './chat-input';
 import { ShieldOff } from 'lucide-react';
+import { suggestReplies } from '@/app/actions';
+import { useToast } from '@/hooks/use-toast';
+import { users } from '@/lib/data';
 
 interface ChatPanelProps {
   chat: Chat | null;
@@ -29,6 +33,44 @@ export function ChatPanel({
   onBlockUser,
   onBack
 }: ChatPanelProps) {
+  const [smartReplies, setSmartReplies] = useState<string[]>([]);
+  const [isGeneratingReplies, setIsGeneratingReplies] = useState(false);
+  const { toast } = useToast();
+  const currentUser = users[0];
+
+  useEffect(() => {
+    setSmartReplies([]);
+  }, [chat?.id]);
+
+  const handleGenerateSmartReplies = async () => {
+    if (!chat || chat.messages.length === 0) return;
+    
+    const lastMessage = chat.messages[chat.messages.length - 1];
+    if (lastMessage.sender.id === currentUser.id) {
+        setSmartReplies([]);
+        return;
+    }
+
+    setIsGeneratingReplies(true);
+    setSmartReplies([]);
+    try {
+      const replies = await suggestReplies(chat.messages);
+      setSmartReplies(replies);
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to generate smart replies.',
+      });
+    } finally {
+      setIsGeneratingReplies(false);
+    }
+  };
+
+  const handleSendMessageWithReset = (content: string) => {
+    onSendMessage(content);
+    setSmartReplies([]);
+  }
   
   if (!chat) {
     return (
@@ -63,7 +105,12 @@ export function ChatPanel({
           <p>You have blocked this user. You can't send messages.</p>
         </div>
       ) : (
-        <ChatInput onSendMessage={onSendMessage} />
+        <ChatInput 
+          onSendMessage={handleSendMessageWithReset} 
+          smartReplies={smartReplies}
+          onGenerateSmartReplies={handleGenerateSmartReplies}
+          isGeneratingReplies={isGeneratingReplies}
+        />
       )}
     </div>
   );
