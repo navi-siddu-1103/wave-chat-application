@@ -22,7 +22,7 @@ This guide explains how to set up phone number authentication with MongoDB for t
    GEMINI_API_KEY=your_gemini_api_key_here
 
    # MongoDB Configuration
-   MONGODB_URI=mongodb://localhost:27017/wave-chat
+   MONGODB_URI=
    # Or for MongoDB Atlas: mongodb+srv://username:password@cluster.mongodb.net/wave-chat
 
    # Authentication
@@ -43,7 +43,7 @@ This guide explains how to set up phone number authentication with MongoDB for t
 ### Option 1: Local MongoDB
 1. Install MongoDB locally
 2. Start MongoDB service: `mongod`
-3. Use connection string: `mongodb://localhost:27017/wave-chat`
+3. Use connection string: ` use mongodb connection string`
 
 ### Option 2: MongoDB Atlas (Cloud)
 1. Create account at [MongoDB Atlas](https://www.mongodb.com/atlas)
