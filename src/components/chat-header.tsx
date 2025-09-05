@@ -42,6 +42,7 @@ import { getChatSummary } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from './ui/scroll-area';
 import { users } from '@/lib/data';
+import { ThemeToggle } from './theme-toggle';
 
 interface ChatHeaderProps {
   chat: Chat;
@@ -202,6 +203,8 @@ export function ChatHeader({ chat, onUpdateChatAvatar, onBlockUser, onBack }: Ch
       </div>
       
       <div className="flex items-center gap-2">
+        <ThemeToggle />
+        
         {pinnedMessages.length > 0 && (
           <Popover>
             <PopoverTrigger asChild>

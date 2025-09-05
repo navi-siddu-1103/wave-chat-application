@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import type { Chat, User } from '@/lib/types';
 import { AddContactDialog } from './add-contact-dialog';
 import { AddGroupDialog } from './add-group-dialog';
+import { UserMenu } from './user-menu';
 import { users } from '@/lib/data';
 
 interface UserListProps {
@@ -30,8 +31,9 @@ export function UserList({ chats, selectedChatId, onSelectChat, onAddContact, on
 
   return (
     <aside className="h-full flex flex-col">
-      <div className="p-4">
+      <div className="p-4 flex items-center justify-between">
         <h1 className="text-2xl font-bold text-primary">Wave</h1>
+        <UserMenu />
       </div>
       <ScrollArea className="flex-1">
         <div className="p-2">
