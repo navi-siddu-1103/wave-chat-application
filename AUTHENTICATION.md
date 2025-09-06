@@ -23,7 +23,7 @@ This guide explains how to set up phone number authentication with MongoDB for t
 
    # MongoDB Configuration
    MONGODB_URI=
-   # Or for MongoDB Atlas: mongodb+srv://username:password@cluster.mongodb.net/wave-chat
+   # Or for MongoDB Atlas: 
 
    # Authentication
    NEXTAUTH_SECRET=your_random_secret_here
