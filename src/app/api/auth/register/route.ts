@@ -2,43 +2,55 @@ import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import { User } from '@/models/User';
 import { formatPhoneNumber, validatePhoneNumber, generateVerificationCode, sendVerificationSMS } from '@/lib/sms';
+import { registerSchema } from '@/lib/validation';
+import { ConflictError, ValidationError, AppError } from '@/lib/errors';
+import { withErrorHandling, addSecurityHeaders, checkRateLimit } from '@/lib/security';
+import { authRateLimiter } from '@/lib/rate-limit';
+import { logger } from '@/lib/logger';
 
-export async function POST(request: NextRequest) {
+export const POST = withErrorHandling(async (request: NextRequest) => {
+  // Check rate limit
+  const rateLimitResponse = checkRateLimit(request, authRateLimiter);
+  if (rateLimitResponse) {
+    return rateLimitResponse;
+  }
+
+  logger.info('Processing registration request');
+
   try {
     await dbConnect();
-    
-    const { phoneNumber, name } = await request.json();
 
-    console.log('Registration request:', { phoneNumber, name });
+    const body = await request.json();
+    logger.debug('Registration body received', { hasPhoneNumber: !!body.phoneNumber, hasName: !!body.name });
 
-    // Validate input
-    if (!phoneNumber || !name) {
-      return NextResponse.json(
-        { error: 'Phone number and name are required' },
-        { status: 400 }
-      );
-    }
+    // Validate input using Zod
+    const { phoneNumber, name } = await registerSchema.parseAsync(body).catch((error) => {
+      logger.warn('Registration validation failed', { error: error.message });
+      const errorMap: Record<string, string[]> = {};
+      error.errors?.forEach((err: any) => {
+        const path = err.path.join('.');
+        if (!errorMap[path]) errorMap[path] = [];
+        errorMap[path].push(err.message);
+      });
+      throw new ValidationError('Invalid registration data', errorMap);
+    });
 
     const formattedPhone = formatPhoneNumber(phoneNumber);
-    console.log('Formatted phone:', formattedPhone);
-    
+    logger.debug('Phone formatted', { original: phoneNumber, formatted: formattedPhone });
+
+    // Format phone number and validate
     if (!validatePhoneNumber(formattedPhone)) {
-      console.log('Invalid phone number:', formattedPhone);
-      return NextResponse.json(
-        { error: 'Invalid phone number format. Please enter a valid 10-digit phone number.' },
-        { status: 400 }
-      );
+      logger.warn('Invalid phone number format', { phoneNumber: formattedPhone });
+      throw new ValidationError('Invalid phone number format. Please enter a valid phone number.');
     }
 
     // Check if user already exists
     let user = await User.findOne({ phoneNumber: formattedPhone });
-    console.log('Existing user found:', !!user);
-    
+    logger.debug('Existing user check', { exists: !!user, verified: user?.isVerified });
+
     if (user && user.isVerified) {
-      return NextResponse.json(
-        { error: 'Phone number already registered. Please use the login option instead.' },
-        { status: 409 }
-      );
+      logger.warn('Registration attempted for verified phone', { phoneNumber: formattedPhone });
+      throw new ConflictError('Phone number already registered. Please use the login option instead.');
     }
 
     // Generate verification code
@@ -51,7 +63,7 @@ export async function POST(request: NextRequest) {
       user.verificationCode = verificationCode;
       user.verificationExpires = verificationExpires;
       await user.save();
-      console.log('Updated existing unverified user');
+      logger.info('Updated existing unverified user', { userId: user._id });
     } else {
       // Create new user
       user = new User({
@@ -62,33 +74,28 @@ export async function POST(request: NextRequest) {
         isVerified: false,
       });
       await user.save();
-      console.log('Created new user');
+      logger.info('Created new user', { userId: user._id });
     }
 
     // Send verification SMS
     const smsSent = await sendVerificationSMS(formattedPhone, verificationCode);
-    console.log('SMS sent status:', smsSent);
-    console.log('Verification code (dev mode):', verificationCode);
-    
+    logger.info('Verification SMS sent', { smsSent, phoneNumber: formattedPhone });
+
     if (!smsSent) {
-      return NextResponse.json(
-        { error: 'Failed to send verification code' },
-        { status: 500 }
-      );
+      logger.error('Failed to send verification SMS', undefined, { phoneNumber: formattedPhone });
+      throw new AppError('Failed to send verification code', 500);
     }
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       message: 'Verification code sent successfully',
       userId: user._id,
       // Include verification code in development mode only
       ...(process.env.NODE_ENV === 'development' && { verificationCode }),
     });
 
+    return addSecurityHeaders(response);
   } catch (error) {
-    console.error('Registration error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    logger.error('Registration error', error instanceof Error ? error : new Error(String(error)));
+    throw error;
   }
-}
+});

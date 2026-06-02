@@ -1,40 +1,57 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import { User } from '@/models/User';
-import { verifyToken } from '@/lib/jwt';
+import { verifyAccessToken } from '@/lib/jwt';
+import { profileUpdateSchema } from '@/lib/validation';
+import { AuthenticationError, NotFoundError, ValidationError } from '@/lib/errors';
+import { withErrorHandling, addSecurityHeaders, checkRateLimit } from '@/lib/security';
+import { apiRateLimiter } from '@/lib/rate-limit';
+import { logger } from '@/lib/logger';
 
-export async function GET(request: NextRequest) {
+/**
+ * Extract and verify JWT token from request
+ */
+function extractAndVerifyToken(request: NextRequest) {
+  const authHeader = request.headers.get('authorization');
+  const token = authHeader?.replace('Bearer ', '');
+
+  if (!token) {
+    throw new AuthenticationError('No authorization token provided');
+  }
+
+  const payload = verifyAccessToken(token);
+  if (!payload) {
+    throw new AuthenticationError('Invalid or expired token');
+  }
+
+  return payload;
+}
+
+export const GET = withErrorHandling(async (request: NextRequest) => {
+  // Check rate limit
+  const rateLimitResponse = checkRateLimit(request, apiRateLimiter);
+  if (rateLimitResponse) {
+    return rateLimitResponse;
+  }
+
+  logger.info('Processing get profile request');
+
   try {
     await dbConnect();
-    
-    const authHeader = request.headers.get('authorization');
-    const token = authHeader?.replace('Bearer ', '');
 
-    if (!token) {
-      return NextResponse.json(
-        { error: 'No token provided' },
-        { status: 401 }
-      );
-    }
-
-    const payload = verifyToken(token);
-    if (!payload) {
-      return NextResponse.json(
-        { error: 'Invalid token' },
-        { status: 401 }
-      );
-    }
+    const payload = extractAndVerifyToken(request);
+    logger.debug('Token verified', { userId: payload.userId });
 
     const user = await User.findById(payload.userId).select('-verificationCode -verificationExpires');
-    
+
     if (!user) {
-      return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 }
-      );
+      logger.warn('User not found', { userId: payload.userId });
+      throw new NotFoundError('User not found');
     }
 
-    return NextResponse.json({
+    logger.info('Profile retrieved successfully', { userId: payload.userId });
+
+    const response = NextResponse.json({
       user: {
         id: user._id,
         name: user.name,
@@ -45,56 +62,65 @@ export async function GET(request: NextRequest) {
       },
     });
 
+    return addSecurityHeaders(response);
   } catch (error) {
-    console.error('Get profile error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    logger.error('Get profile error', error instanceof Error ? error : new Error(String(error)));
+    throw error;
   }
-}
+});
 
-export async function PUT(request: NextRequest) {
+export const PUT = withErrorHandling(async (request: NextRequest) => {
+  // Check rate limit
+  const rateLimitResponse = checkRateLimit(request, apiRateLimiter);
+  if (rateLimitResponse) {
+    return rateLimitResponse;
+  }
+
+  logger.info('Processing update profile request');
+
   try {
     await dbConnect();
-    
-    const authHeader = request.headers.get('authorization');
-    const token = authHeader?.replace('Bearer ', '');
 
-    if (!token) {
-      return NextResponse.json(
-        { error: 'No token provided' },
-        { status: 401 }
-      );
-    }
+    const payload = extractAndVerifyToken(request);
+    logger.debug('Token verified for profile update', { userId: payload.userId });
 
-    const payload = verifyToken(token);
-    if (!payload) {
-      return NextResponse.json(
-        { error: 'Invalid token' },
-        { status: 401 }
-      );
-    }
+    const body = await request.json();
+    logger.debug('Profile update body received', { hasName: !!body.name, hasAvatar: !!body.avatar });
 
-    const { name, avatar } = await request.json();
+    // Validate input using Zod
+    const updateData = await profileUpdateSchema.parseAsync(body).catch((error) => {
+      logger.warn('Profile update validation failed', { error: error.message });
+      const errorMap: Record<string, string[]> = {};
+      error.errors?.forEach((err: any) => {
+        const path = err.path.join('.');
+        if (!errorMap[path]) errorMap[path] = [];
+        errorMap[path].push(err.message);
+      });
+      throw new ValidationError('Invalid profile update data', errorMap);
+    });
 
     const user = await User.findById(payload.userId);
-    
+
     if (!user) {
-      return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 }
-      );
+      logger.warn('User not found for profile update', { userId: payload.userId });
+      throw new NotFoundError('User not found');
     }
 
     // Update user profile
-    if (name) user.name = name;
-    if (avatar !== undefined) user.avatar = avatar;
+    if (updateData.name) {
+      user.name = updateData.name;
+      logger.debug('Name updated', { userId: payload.userId });
+    }
+    if (updateData.avatar !== undefined) {
+      user.avatar = updateData.avatar;
+      logger.debug('Avatar updated', { userId: payload.userId });
+    }
     user.lastSeen = new Date();
 
     await user.save();
+    logger.info('Profile updated successfully', { userId: payload.userId });
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       message: 'Profile updated successfully',
       user: {
         id: user._id,
@@ -106,11 +132,9 @@ export async function PUT(request: NextRequest) {
       },
     });
 
+    return addSecurityHeaders(response);
   } catch (error) {
-    console.error('Update profile error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    logger.error('Update profile error', error instanceof Error ? error : new Error(String(error)));
+    throw error;
   }
-}
+});
